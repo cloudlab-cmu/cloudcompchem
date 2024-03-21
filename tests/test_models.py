@@ -1,6 +1,6 @@
 import pytest
-from .models import Molecule, Atom, DFTRequest
-from .exceptions import DFTRequestValidationException
+from cloudcompchem.models import Molecule, Atom, DFTRequest
+from cloudcompchem.exceptions import DFTRequestValidationException
 from dataclasses import asdict
 
 

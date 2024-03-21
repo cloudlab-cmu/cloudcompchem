@@ -5,7 +5,7 @@ import logging
 from pysll import Constellation
 from flask import Flask
 
-from .controller import DFTController
+from cloudcompchem.controllers import DFTController
 
 
 # This is run automatically by flask when the application starts

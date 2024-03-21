@@ -2,9 +2,9 @@ from http import HTTPStatus
 import logging
 from dataclasses import asdict
 from pysll import Constellation
-from pyscf import gto, dft
-from .models import DFTRequest, SinglePointEnergyResponse
-from .exceptions import NotLoggedInException, DFTRequestValidationException
+from cloudcompchem.models import DFTRequest
+from cloudcompchem.exceptions import NotLoggedInException, DFTRequestValidationException
+from cloudcompchem.utils import run_dft_calculation
 
 from flask import jsonify, make_response
 from flask import request as global_request
@@ -36,31 +36,6 @@ class DFTController:
     ###################################################################################
     ### You must implement the two functions below to have a functional simulation ####
     ###################################################################################
-
-    def _run_dft_calculation(self, dft_input: DFTRequest) -> SinglePointEnergyResponse:
-        """Method to run a dft calculation on the initial request payload."""
-        self._logger.info("Starting dft calculation!")
-
-        # Hopefully your model is more sophisticated!
-        # build the input structure with gto
-        s = dft_input.spin_multiplicity - 1
-        mol = gto.M(
-            atom=str(dft_input.molecule),
-            basis=dft_input.basis_set,
-            charge=dft_input.charge,
-            spin=s,
-        )
-        # run the dft calculation for the given functional
-        if dft_input.spin_multiplicity > 1:
-            # use unrestricted kohn-sham
-            calc = dft.UKS(mol)
-        else:
-            calc = dft.RKS(mol)
-        calc.xc = dft_input.functional
-        energy = calc.kernel()
-        self._logger.info("Finished dft calculation!")
-
-        return SinglePointEnergyResponse(energy=energy)
 
     def health_check(self):
         """This is used to test if the service is healthy and running.
@@ -104,7 +79,7 @@ class DFTController:
         # for this process, but we can handle additional IO requests
         self._logger.info("Triggering dft simulation request")
         try:
-            response = self._run_dft_calculation(dft_input)
+            response = run_dft_calculation(dft_input)
         except RuntimeError as re:
             self._logger.error(
                 f"Runtime error encountered during DFT calculation due to misconfigured inputs: {re}."

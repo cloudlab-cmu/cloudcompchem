@@ -2,7 +2,7 @@
 
 import logging
 
-from pyecl import Constellation
+from pysll import Constellation
 from flask import Flask
 
 from controller import DFTController
@@ -24,7 +24,7 @@ def create_app():
         "/health-check", "healthcheck", dft_controller.health_check, methods=["GET"]
     )
     app.add_url_rule(
-        "/simulate", "simulate", dft_controller.simulate, methods=["POST"]
+        "/energy", "energy", dft_controller.simulate_energy, methods=["POST"]
     )
 
     return app

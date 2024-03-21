@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from functools import partial
+from .exceptions import DFTRequestValidationException
 
 
 @dataclass
@@ -19,10 +20,17 @@ class DFTRequest:
         # unpack the nested molecule struct first
         mol_dict = d.pop("molecule", None)
         if mol_dict is None:
-            raise TypeError("No molecule information contained in request.")
+            raise DFTRequestValidationException(
+                "No molecule information contained in request."
+            )
         if not isinstance(mol_dict, dict):
-            raise TypeError("Molecule information in request is not in JSON format.")
+            raise DFTRequestValidationException(
+                "Molecule information in request is not in JSON format."
+            )
         mol = Molecule.from_dict(mol_dict)
+
+        if not isinstance(d.get("charge"), int):
+            raise DFTRequestValidationException("Charge must be an integer.")
 
         # curry the unpacked molecule into the request instantiation and then add
         # the rest of the args by unpacking the initial dict
@@ -42,11 +50,13 @@ class Molecule:
         """method that converts a dict from a json request into an object of
         this class.
         """
-        atom_dicts = dict.get("atoms")
+        atom_dicts = d.get("atoms")
         if atom_dicts is None:
-            raise TypeError("No 'atoms' key found in the molecule.")
+            raise DFTRequestValidationException("No 'atoms' key found in the molecule.")
         if not isinstance(atom_dicts, list):
-            raise TypeError("The value of the 'atoms' key is not a list.")
+            raise DFTRequestValidationException(
+                "The value of the 'atoms' key is not a list."
+            )
         return Molecule(atoms=[Atom(**a) for a in atom_dicts])
 
 

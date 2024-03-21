@@ -43,18 +43,19 @@ class DFTController:
 
         # Hopefully your model is more sophisticated!
         # build the input structure with gto
+        s = dft_input.spin_multiplicity - 1
         mol = gto.M(
             atom=str(dft_input.molecule),
             basis=dft_input.basis_set,
             charge=dft_input.charge,
-            spin=dft_input.spin_multiplicity,
+            spin=s,
         )
         # run the dft calculation for the given functional
         if dft_input.spin_multiplicity > 1:
             # use unrestricted kohn-sham
-            calc = dft.uks(mol)
+            calc = dft.UKS(mol)
         else:
-            calc = dft.rks(mol)
+            calc = dft.RKS(mol)
         calc.xc = dft_input.functional
         energy = calc.kernel()
         self._logger.info("Finished dft calculation!")
@@ -74,17 +75,20 @@ class DFTController:
         This should be used to (asyncronously) trigger a a run of the model.
         """
 
-        self._logger.info("Received request to simulate a protocol!")
+        self._logger.info("Received request to simulate a molecule!")
 
         # Parse the request
         try:
             dft_input = self._parse_dft_request(global_request)
         except DFTRequestValidationException as te:
+            self._logger.error(f"Validation error: {te.message} Returning")
             return (te.message, te.status_code)
         except NotLoggedInException as ex:
+            self._logger.error("Not logged in! Returning")
             return (ex.message, ex.status_code)
-        except:
+        except Exception as e:
             # unhandled exception!!! return a 500
+            self._logger.error(f"Unhandled exception!: {e}")
             return (
                 "Error encountered while unpacking request JSON, please inspect for errors and try again.",
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -99,7 +103,30 @@ class DFTController:
         # NOTE: this is not actually parallel in python since python has a GIL
         # for this process, but we can handle additional IO requests
         self._logger.info("Triggering dft simulation request")
-        response = self._run_dft_calculation(dft_input)
+        try:
+            response = self._run_dft_calculation(dft_input)
+        except RuntimeError as re:
+            self._logger.error(
+                f"Runtime error encountered during DFT calculation due to misconfigured inputs: {re}."
+            )
+            return (
+                f"Runtime error encountered during DFT calculation due to misconfigured inputs: {re}.",
+                HTTPStatus.BAD_REQUEST,
+            )
+        except KeyError as ke:
+            message = f"Runtime error encountered during DFT calculation due to misconfigured inputs: {ke}."
+            self._logger.error(message)
+            return (message, HTTPStatus.BAD_REQUEST)
+        except AssertionError:
+            message = "Found a runtime exception likely due to an invalid charge specification."
+            self._logger.error(message)
+            return (message, HTTPStatus.BAD_REQUEST)
+        except Exception as e:
+            self._logger.error(f"Unhandled exception of type ({type(e)}): {e}.")
+            return (
+                f"Unhandled exception: {e}.",
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
         # Return a 202 accepted
         return make_response(asdict(response), HTTPStatus.OK)
@@ -109,18 +136,30 @@ class DFTController:
 
         Generally there should be no reason to update this function."""
         token = self._retrieve_auth_token_from_request(request)
+        self._logger.info(f"Got token from request! Attempting to validate token...")
         try:
             self._constellation._auth_token = token
             self._constellation.me()
         except:
             raise NotLoggedInException("No authentication from login was provided!")
+        self._logger.info(f"Token validated!")
 
         # unpack the request into a struct
         req_info = request.json
+        self._logger.info(
+            f"Attempting to unmarshal the request payload to internal struct..."
+        )
         if req_info is None:
             raise DFTRequestValidationException(
                 "No JSON body found, please include one to run a calculation."
             )
         dft_input = DFTRequest.from_dict(req_info)
+        self._logger.info(f"Request constructed!")
 
         return dft_input
+
+    def _retrieve_auth_token_from_request(self, request):
+        auth_header = request.headers.get("Authorization")
+        if auth_header:
+            return auth_header.replace("Bearer ", "")
+        return None

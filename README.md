@@ -1,18 +1,5 @@
-# ECL-collab
+# cloudcompchem
 Goal of this repo is to provide a set of code for creating computational chemistry tools to be run on the cloud at ECL in collaboration with CMU. This will be done via a webserver that responds to requests by running DFT calculations.
-
-# TODO
-- [ ] Decide on input payload structure. What is the minimal input required to have a good experience running a standard DFT calculation.
-- [ ] Build validator function. Put code in a new file called `validators.py`.
-- [ ] Build tests for validator function. Put code in a new file called `test_validators.py`.
-- [ ] Build function that runs the dft calculator. Put code in a new file called `dft.py`.
-- [ ] Build tests for dft calculator. Put tests in new file called `test_dft.py`.
-- [ ] Design output payload structure. What is the minimal output that folks would want to see from a standard DFT calculation.
-- [ ] Build integration tests for the entire web service using mock clients in pytest. Put tests in file called `test_service.py`.
-- [ ] Get all tests passing!
-- [ ] Build python interface that abstracts the http request and response handling from the user.
-- [ ] Build the julia interface that abstracts the http request and response handling from the user.
-- [ ] Deploy the webserver to the dev environment for quality assurance testing.
 
 # Details
 The web server is built on Flask, and has two primary endpoints, `/simulate` and `/results`. The `/simulate` endpoint serves to launch the calculation in a separate thread running on the same computer that the webserver is hosted on, and returns a `202` accepted with an `id` token to track the simulation progress. The `/results` endpoint queries the server for the completion status of the simulation, and returns a packet of metadata if the simulation is complete.

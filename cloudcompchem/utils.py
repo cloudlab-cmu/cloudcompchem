@@ -31,3 +31,18 @@ def run_dft_calculation(dft_input: DFTRequest) -> SinglePointEnergyResponse:
     _logger.info("Finished dft calculation!")
 
     return SinglePointEnergyResponse(energy=energy)
+
+
+def find_homo_lumo(energies: list[float], occs: list[float]) -> tuple[float, float]:
+    """Find the HOMO and LUMO energies from a list of orbital energy and
+    occupancies."""
+
+    # infer the threshold from the first occupancy value
+    # if it's greater than 1, we're looking at a restricted calculation result
+    # if not it's an unrestricted one
+    if occs[0] > 1.0:
+        thresh = 1.0
+    else:
+        thresh = 0.5
+    lumo_index = len(list(filter(lambda occ: occ > thresh, occs)))
+    return (energies[lumo_index - 1], energies[lumo_index])

@@ -3,14 +3,11 @@ import logging
 from dataclasses import asdict
 from pysll import Constellation
 from cloudcompchem.models import DFTRequest
-from cloudcompchem.exceptions import NotLoggedInException, DFTRequestValidationException
+from cloudcompchem.exceptions import NotLoggedInException, ValidationException
 from cloudcompchem.utils import run_dft_calculation
 
 from flask import jsonify, make_response
 from flask import request as global_request
-
-# TODO: import exceptions up here to be used
-# from exceptions import ControllerException
 
 
 class DFTController:
@@ -55,9 +52,9 @@ class DFTController:
         # Parse the request
         try:
             dft_input = self._parse_dft_request(global_request)
-        except DFTRequestValidationException as te:
-            self._logger.error(f"Validation error: {te.message} Returning")
-            return (te.message, te.status_code)
+        except ValidationException as ve:
+            self._logger.error(f"Validation error: {ve.message} Returning")
+            return (ve.message, ve.status_code)
         except NotLoggedInException as ex:
             self._logger.error("Not logged in! Returning")
             return (ex.message, ex.status_code)
@@ -103,7 +100,7 @@ class DFTController:
                 HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
-        # Return a 202 accepted
+        # Return a 200 OK
         return make_response(asdict(response), HTTPStatus.OK)
 
     def _parse_dft_request(self, request) -> DFTRequest:
@@ -125,7 +122,7 @@ class DFTController:
             f"Attempting to unmarshal the request payload to internal struct..."
         )
         if req_info is None:
-            raise DFTRequestValidationException(
+            raise ValidationException(
                 "No JSON body found, please include one to run a calculation."
             )
         dft_input = DFTRequest.from_dict(req_info)

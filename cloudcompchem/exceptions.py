@@ -19,8 +19,18 @@ class NotLoggedInException(ControllerException):
         super().__init__(message, HTTPStatus.UNAUTHORIZED)
 
 
-class DFTRequestValidationException(ControllerException):
+class ValidationException(ControllerException):
     """Thrown when a type error is hit when unpacking the DFT request."""
 
     def __init__(self, message: str):
         super().__init__(message, HTTPStatus.BAD_REQUEST)
+
+
+class ClientException(Exception):
+    """Thrown by the client when an API error is encountered."""
+
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self) -> str:
+        return f"Exception encountered during calculation: {self.message}"

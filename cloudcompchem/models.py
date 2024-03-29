@@ -75,6 +75,11 @@ class Atom:
 @dataclass
 class SinglePointEnergyResponse:
     energy: float
+    converged: bool
+    orbital_energies: list[float]
+    # NOTE: this should be a float for cases where we smear occupancies
+    #       and numerically it comes out as a float anyway
+    orbital_occupancies: list[float]
 
 
 @dataclass

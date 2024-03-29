@@ -48,9 +48,24 @@ def test_simulate_energy(client, req_dict, caplog):
     )
     assert response.status_code == 200
     assert isinstance(response.json, dict)
-    e = response.json.get("energy")
+
+    resp_dict = response.json
+    e = resp_dict.get("energy")
     assert isinstance(e, float)
     assert e > -77 and e < -76
+
+    c = resp_dict.get("converged")
+    assert isinstance(c, bool)
+    assert c is True
+
+    mo_es = resp_dict.get("orbital_energies")
+    assert isinstance(mo_es, list)
+    assert all(isinstance(en, float) for en in mo_es)
+
+    mo_occ = resp_dict.get("orbital_occupancies")
+    assert isinstance(mo_occ, list)
+    assert all(isinstance(oc, float) for oc in mo_occ)
+    assert sum(mo_occ) == 10.0
 
 
 def test_simulate_energy_spin_error(client, req_dict, caplog):

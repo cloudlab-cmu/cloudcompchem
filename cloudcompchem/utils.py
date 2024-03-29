@@ -27,7 +27,12 @@ def run_dft_calculation(dft_input: DFTRequest) -> SinglePointEnergyResponse:
     else:
         calc = dft.RKS(mol)
     calc.xc = dft_input.functional
-    energy = calc.kernel()
+    calc.kernel()
     _logger.info("Finished dft calculation!")
 
-    return SinglePointEnergyResponse(energy=energy)
+    return SinglePointEnergyResponse(
+        energy=calc.e_tot,
+        converged=calc.converged,
+        orbital_energies=list(calc.mo_energy),
+        orbital_occupancies=list(calc.mo_occ),
+    )

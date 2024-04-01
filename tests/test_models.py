@@ -1,7 +1,9 @@
-import pytest
-from cloudcompchem.models import Molecule, Atom, DFTRequest
-from cloudcompchem.exceptions import DFTRequestValidationException
 from dataclasses import asdict
+
+import pytest
+
+from cloudcompchem.exceptions import DFTRequestValidationException
+from cloudcompchem.models import Atom, DFTRequest, Molecule
 
 
 @pytest.fixture()
@@ -35,17 +37,17 @@ def req_dict():
 
 def test_atom_deserialize():
     """Test whether we can make atoms from dicts."""
-    a = Atom("C", [1, 2, 3])
-    assert a.symbol == "C" and a.position == [1, 2, 3]
+    a = Atom("C", (1, 2, 3))
+    assert a.symbol == "C" and a.position == (1, 2, 3)
 
-    a = Atom(**{"symbol": "C", "position": [1, 2, 3]})
-    assert a.symbol == "C" and a.position == [1, 2, 3]
+    a = Atom(**{"symbol": "C", "position": (1, 2, 3)})
+    assert a.symbol == "C" and a.position == (1, 2, 3)
 
 
 def test_atom_serialize():
     """Test whether we can serialize atoms into dicts."""
-    a = Atom("C", [1, 2, 3])
-    assert asdict(a) == {"symbol": "C", "position": [1, 2, 3]}
+    a = Atom("C", (1, 2, 3))
+    assert asdict(a) == {"symbol": "C", "position": (1, 2, 3)}
 
 
 def test_molecule_deserialize():

@@ -54,9 +54,7 @@ def test_simulate_energy(client, req_dict, caplog):
     assert isinstance(e, float)
     assert e > -77 and e < -76
 
-    c = resp_dict.get("converged")
-    assert isinstance(c, bool)
-    assert c is True
+    assert c["converged"] is True
 
     mo_es = resp_dict.get("orbital_energies")
     assert isinstance(mo_es, list)

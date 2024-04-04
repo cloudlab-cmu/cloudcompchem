@@ -22,7 +22,7 @@ def client(app):
 
 @pytest.fixture()
 def req_dict():
-    yield {
+    return {
         "functional": "pbe,pbe",
         "basis_set": "ccpvdz",
         "charge": 0,
@@ -49,10 +49,38 @@ def test_simulate_energy(client, req_dict):
         headers={"Authorization": "Bearer abc123"},
     )
     assert response.status_code == 200
-    assert isinstance(response.json, dict)
-    e = response.json.get("energy")
-    assert isinstance(e, float)
-    assert e > -77 and e < -76
+    assert response.json == {
+        "energy": {
+            "converged": True,
+            "energy": -76.33031780985159,
+            "orbitals": [
+                {"energy": -18.752172955173354, "occupancy": 2.0},
+                {"energy": -0.8981074252667383, "occupancy": 2.0},
+                {"energy": -0.41827646305113936, "occupancy": 2.0},
+                {"energy": -0.33244463860943163, "occupancy": 2.0},
+                {"energy": -0.22606441107905723, "occupancy": 2.0},
+                {"energy": 0.018896864509185606, "occupancy": 0.0},
+                {"energy": 0.09474951776925271, "occupancy": 0.0},
+                {"energy": 0.4686286596516729, "occupancy": 0.0},
+                {"energy": 0.5732120055126462, "occupancy": 0.0},
+                {"energy": 0.8637030310769265, "occupancy": 0.0},
+                {"energy": 0.8825744834857628, "occupancy": 0.0},
+                {"energy": 0.9581037355111632, "occupancy": 0.0},
+                {"energy": 1.0270725783673582, "occupancy": 0.0},
+                {"energy": 1.2209998378475277, "occupancy": 0.0},
+                {"energy": 1.2892607510989995, "occupancy": 0.0},
+                {"energy": 1.5192170841069328, "occupancy": 0.0},
+                {"energy": 1.642925527415433, "occupancy": 0.0},
+                {"energy": 1.9730348410011573, "occupancy": 0.0},
+                {"energy": 2.014591748568126, "occupancy": 0.0},
+                {"energy": 2.7912042390159555, "occupancy": 0.0},
+                {"energy": 2.8519599289595794, "occupancy": 0.0},
+                {"energy": 2.9386940388847598, "occupancy": 0.0},
+                {"energy": 3.32053671239125, "occupancy": 0.0},
+                {"energy": 3.646663078270252, "occupancy": 0.0},
+            ],
+        }
+    }
 
 
 def test_simulate_energy_spin_error(client, req_dict):

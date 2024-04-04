@@ -15,12 +15,12 @@ def mol():
             {"symbol": "H", "position": [0, 0, 1]},
         ]
     }
-    yield Molecule.from_dict(atom_dicts)
+    return Molecule.from_dict(atom_dicts)
 
 
 @pytest.fixture()
 def req_dict():
-    yield {
+    return {
         "functional": "b3lyp",
         "basis_set": "ccpvdz",
         "charge": 0,

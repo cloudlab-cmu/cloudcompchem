@@ -14,15 +14,15 @@ logger = logging.getLogger("cloudcompchem.dft")
 
 
 @dataclass
-class Request:
+class EnergyRequest:
+    molecule: Molecule
     functional: str
     basis_set: str
     spin_multiplicity: int
     charge: int
-    molecule: Molecule
 
     @staticmethod
-    def from_dict(d: dict) -> Request:
+    def from_dict(d: dict) -> EnergyRequest:
         """Create a DFTRequest object from a json-like dictionary, which
         typically comes from a web request."""
         # unpack the nested molecule struct first
@@ -33,10 +33,10 @@ class Request:
         if not isinstance(d.get("charge"), int):
             raise DFTRequestValidationException("Charge must be an integer.")
 
-        return Request(molecule=Molecule.from_dict(molecule_data), **d)
+        return EnergyRequest(molecule=Molecule.from_dict(molecule_data), **d)
 
 
-def calculate_energy(dft_input: Request) -> SinglePointEnergyResponse:
+def calculate_energy(dft_input: EnergyRequest) -> SinglePointEnergyResponse:
     """Method to run a dft calculation on the initial request payload."""
     logger.info("Starting dft calculation!")
 

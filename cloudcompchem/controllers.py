@@ -5,7 +5,7 @@ from flask import jsonify, make_response
 from flask import request as global_request
 from pysll import Constellation
 
-from cloudcompchem.dft import Request, calculate_energy
+from cloudcompchem.dft import EnergyRequest, calculate_energy
 from cloudcompchem.exceptions import DFTRequestValidationException, NotLoggedInException
 
 
@@ -95,7 +95,7 @@ class DFTController:
 
         return make_response({"energy": energy}, HTTPStatus.OK)
 
-    def _parse_dft_request(self, request) -> Request:
+    def _parse_dft_request(self, request) -> EnergyRequest:
         """Parse the simulation request into the auth token, the protocols to
         simulation, and the model to use.
 
@@ -115,7 +115,7 @@ class DFTController:
         self._logger.info("Attempting to unmarshal the request payload to internal struct...")
         if req_info is None:
             raise DFTRequestValidationException("No JSON body found, please include one to run a calculation.")
-        dft_input = Request.from_dict(req_info)
+        dft_input = EnergyRequest.from_dict(req_info)
         self._logger.info("Request constructed!")
 
         return dft_input

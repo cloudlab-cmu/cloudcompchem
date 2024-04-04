@@ -17,7 +17,7 @@ def energy(args: argparse.Namespace):
     with open(args.filename) as handle:
         data = json.load(handle)
 
-    request = dft.Request.from_dict(data)
+    request = dft.EnergyRequest.from_dict(data)
     output = dft.calculate_energy(request)
 
     print(output)

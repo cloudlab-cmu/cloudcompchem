@@ -69,8 +69,16 @@ class Atom:
 
 
 @dataclass
+class Orbital:
+    energy: float
+    occupancy: float
+
+
+@dataclass
 class SinglePointEnergyResponse:
     energy: float
+    converged: bool
+    orbitals: list[Orbital]
 
 
 @dataclass

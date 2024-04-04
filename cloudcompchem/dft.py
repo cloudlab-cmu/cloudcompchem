@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+import numpy as np
 from pyscf.dft import RKS, UKS
 
 from cloudcompchem.exceptions import DFTRequestValidationException
-from cloudcompchem.models import Molecule
+from cloudcompchem.models import Molecule, Orbital, SinglePointEnergyResponse
 from cloudcompchem.utils import M
 
 logger = logging.getLogger("cloudcompchem.dft")
@@ -35,7 +36,7 @@ class Request:
         return Request(molecule=Molecule.from_dict(molecule_data), **d)
 
 
-def calculate_energy(dft_input: Request) -> float:
+def calculate_energy(dft_input: Request) -> SinglePointEnergyResponse:
     """Method to run a dft calculation on the initial request payload."""
     logger.info("Starting dft calculation!")
 
@@ -54,9 +55,22 @@ def calculate_energy(dft_input: Request) -> float:
     fn = UKS if dft_input.spin_multiplicity > 1 else RKS
     calc = fn(mole)
     calc.xc = dft_input.functional
-    energy = calc.kernel()
-    assert isinstance(energy, float)
+    _ = calc.kernel()
 
     logger.info("Finished dft calculation!")
 
-    return energy
+    assert isinstance(calc.mo_energy, np.ndarray)
+    assert isinstance(calc.mo_occ, np.ndarray)
+
+    return SinglePointEnergyResponse(
+        energy=calc.e_tot,
+        converged=calc.converged,
+        orbitals=[
+            Orbital(energy=energy, occupancy=occ)
+            for energy, occ in zip(
+                calc.mo_energy,
+                calc.mo_occ,
+                strict=True,
+            )
+        ],
+    )

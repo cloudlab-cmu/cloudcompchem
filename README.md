@@ -62,8 +62,8 @@ To run an energy calculation, the input payload must be correctly specified. A t
     "charge": 0,
     "spin_multiplicity": 1,
     "atoms": [
-      {"position": [0., 0., 0.], "symbol": "H"},
-      {"position": [0., 0., 1.], "symbol": "H"},
+      {"position": [0.0, 0.0, 0.0], "symbol": "H"},
+      {"position": [0.0, 0.0, 1.0], "symbol": "H"},
     ]
   }
 }

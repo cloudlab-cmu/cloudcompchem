@@ -1,0 +1,6 @@
+click
+pytest
+pycodestyle
+pyflakes
+black
+pre-commit

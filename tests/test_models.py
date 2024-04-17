@@ -1,7 +1,10 @@
-import pytest
-from cloudcompchem.models import Molecule, Atom, DFTRequest
-from cloudcompchem.exceptions import DFTRequestValidationException
+from copy import deepcopy
 from dataclasses import asdict
+
+import pytest
+
+from cloudcompchem.exceptions import DFTRequestValidationException
+from cloudcompchem.models import Atom, EnergyRequest, Molecule
 
 
 @pytest.fixture()
@@ -11,52 +14,50 @@ def mol():
             {"symbol": "O", "position": [0, 0, 0]},
             {"symbol": "H", "position": [0, 1, 0]},
             {"symbol": "H", "position": [0, 0, 1]},
-        ]
+        ],
+        "charge": 0,
+        "spin_multiplicity": 1,
     }
-    yield Molecule.from_dict(atom_dicts)
+    return Molecule.from_dict(atom_dicts)
 
 
 @pytest.fixture()
 def req_dict():
-    yield {
-        "functional": "b3lyp",
-        "basis_set": "ccpvdz",
-        "charge": 0,
-        "spin_multiplicity": 1,
+    return {
+        "config": {
+            "functional": "pbe,pbe",
+            "basis_set": "ccpvdz",
+        },
         "molecule": {
             "atoms": [
                 {"symbol": "O", "position": [0, 0, 0]},
                 {"symbol": "H", "position": [0, 1, 0]},
                 {"symbol": "H", "position": [0, 0, 1]},
-            ]
+            ],
+            "charge": 0,
+            "spin_multiplicity": 1,
         },
     }
 
 
 def test_atom_deserialize():
     """Test whether we can make atoms from dicts."""
-    a = Atom("C", [1, 2, 3])
-    assert a.symbol == "C" and a.position == [1, 2, 3]
+    a = Atom("C", (1, 2, 3))
+    assert a.symbol == "C" and a.position == (1, 2, 3)
 
-    a = Atom(**{"symbol": "C", "position": [1, 2, 3]})
-    assert a.symbol == "C" and a.position == [1, 2, 3]
+    a = Atom(**{"symbol": "C", "position": (1, 2, 3)})
+    assert a.symbol == "C" and a.position == (1, 2, 3)
 
 
 def test_atom_serialize():
     """Test whether we can serialize atoms into dicts."""
-    a = Atom("C", [1, 2, 3])
-    assert asdict(a) == {"symbol": "C", "position": [1, 2, 3]}
+    a = Atom("C", (1, 2, 3))
+    assert asdict(a) == {"symbol": "C", "position": (1, 2, 3)}
 
 
-def test_molecule_deserialize():
+def test_molecule_deserialize(req_dict):
     """Test whether we can deserialize a molecule from dicts."""
-    atom_dicts = {
-        "atoms": [
-            {"symbol": "O", "position": [0, 0, 0]},
-            {"symbol": "H", "position": [0, 1, 0]},
-            {"symbol": "H", "position": [0, 0, 1]},
-        ]
-    }
+    atom_dicts = req_dict["molecule"]
     mol = Molecule.from_dict(atom_dicts)
     assert len(mol.atoms) == 3
     assert [a.symbol for a in mol.atoms] == ["O", "H", "H"]
@@ -71,7 +72,9 @@ def test_invalid_molecule_deserialization():
             {"symbol": "O", "position": [0, 0, 0]},
             {"symbol": "H", "position": [0, 1, 0]},
             {"symbol": "H", "position": [0, 0, 1]},
-        ]
+        ],
+        "charge": 0,
+        "spin_multiplicity": 1,
     }
     try:
         res = Molecule.from_dict(atom_dicts)
@@ -83,7 +86,9 @@ def test_invalid_molecule_deserialization():
 
     atom_dicts = {
         # make atoms value not a list
-        "atoms": {"symbol": "O", "position": [0, 0, 0]}
+        "atoms": {"symbol": "O", "position": [0, 0, 0]},
+        "charge": 0,
+        "spin_multiplicity": 1,
     }
     try:
         res = Molecule.from_dict(atom_dicts)
@@ -101,7 +106,9 @@ def test_molecule_serialize(mol):
             {"symbol": "O", "position": [0, 0, 0]},
             {"symbol": "H", "position": [0, 1, 0]},
             {"symbol": "H", "position": [0, 0, 1]},
-        ]
+        ],
+        "charge": 0,
+        "spin_multiplicity": 1,
     }
 
 
@@ -112,9 +119,10 @@ def test_molecule_to_string(mol):
 
 def test_request_deserialization(req_dict):
     """Test whether we can deserialize entire dft request."""
+
     # NOTE: need to copy b/c 'from_dict' modifies the input dict inplace
-    cpy = req_dict.copy()
-    r = DFTRequest.from_dict(req_dict)
+    cpy = deepcopy(req_dict)
+    r = EnergyRequest.from_dict(req_dict)
     assert asdict(r) == cpy
 
 
@@ -124,7 +132,7 @@ def test_invalid_request_deserialization(req_dict):
     # change the molecules key to something that doesn't match
     inv_req_dict["molecule"] = "blah"
     try:
-        r = DFTRequest.from_dict(inv_req_dict)
+        r = EnergyRequest.from_dict(inv_req_dict)
     except Exception as e:
         r = e
     assert isinstance(r, DFTRequestValidationException)
@@ -134,7 +142,7 @@ def test_invalid_request_deserialization(req_dict):
     # delete the molecules key
     del req_dict["molecule"]
     try:
-        r = DFTRequest.from_dict(req_dict)
+        r = EnergyRequest.from_dict(req_dict)
     except Exception as e:
         r = e
     assert isinstance(r, DFTRequestValidationException)

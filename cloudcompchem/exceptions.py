@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 
 class ControllerException(Exception):
-    """Base class for all thrown exceptions"""
+    """Base class for all thrown exceptions."""
 
     def __init__(self, message, status_code):
         self.message = message

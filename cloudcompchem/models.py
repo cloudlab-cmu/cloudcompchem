@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import partial
+
 from .exceptions import DFTRequestValidationException
 
 atomic_numbers = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10, 'Na': 11, 'Mg': 12, 'Al': 13, 'Si': 14,
@@ -21,75 +23,91 @@ def check_charge_spin(charge, spin, atom_symbols):
         raise DFTRequestValidationException(f"Combination of charge={charge} and spin multiplicity={spin} is not valid.")
 
 @dataclass
-class DFTRequest:
-    functional: str
-    basis_set: str
-    spin_multiplicity: int
-    charge: int
+class EnergyRequest:
+    config: FunctionalConfig
     molecule: Molecule
 
     @staticmethod
-    def from_dict(d: dict) -> DFTRequest:
+    def from_dict(d: dict) -> EnergyRequest:
         """Create a DFTRequest object from a json-like dictionary, which
-        typically comes from a web request.
-        """
+        typically comes from a web request."""
         # unpack the nested molecule struct first
         mol_dict = d.pop("molecule", None)
-        if mol_dict is None:
-            raise DFTRequestValidationException(
-                "No molecule information contained in request."
-            )
+        if not mol_dict:
+            raise DFTRequestValidationException("No molecule information contained in request.")
         if not isinstance(mol_dict, dict):
-            raise DFTRequestValidationException(
-                "Molecule information in request is not in JSON format."
-            )
-        mol = Molecule.from_dict(mol_dict)
+            raise DFTRequestValidationException("Molecule information in request is not in JSON format.")
+        molecule = Molecule.from_dict(mol_dict)
 
-        if not isinstance(d.get("charge"), int):
+        # TODO: switch our dataclasses to pydantic BaseModels
+        if not isinstance(mol_dict.get("charge"), int):
             raise DFTRequestValidationException("Charge must be an integer.")
+        if not isinstance(mol_dict.get("spin_multiplicity"), int):
+            raise DFTRequestValidationException("Spin multiplicity must be an integer.")
 
-        # curry the unpacked molecule into the request instantiation and then add
-        # the rest of the args by unpacking the initial dict
-        return partial(DFTRequest, molecule=mol)(**d)
+        # get the functional config
+        config_dict = d.get("config")
+        if config_dict is None:
+            raise DFTRequestValidationException(
+                "No functional configuration has been specified (use the 'config' keyword)."
+            )
+        config = FunctionalConfig(**config_dict)
+
+        return EnergyRequest(config=config, molecule=molecule)
+
+
+@dataclass
+class FunctionalConfig:
+    functional: str
+    basis_set: str
 
 
 @dataclass
 class Molecule:
     atoms: list[Atom]
+    spin_multiplicity: int
+    charge: int
 
     def __str__(self) -> str:
-        """Create a string representation that fits into the input for pyscf"""
+        """Create a string representation that fits into the input for
+        pyscf."""
         return "; ".join(str(a) for a in self.atoms)
 
     @staticmethod
     def from_dict(d: dict) -> Molecule:
-        """method that converts a dict from a json request into an object of
-        this class.
-        """
-        atom_dicts = d.get("atoms")
+        """Method that converts a dict from a json request into an object of
+        this class."""
+        atom_dicts = d.pop("atoms", None)
         if atom_dicts is None:
             raise DFTRequestValidationException("No 'atoms' key found in the molecule.")
         if not isinstance(atom_dicts, list):
-            raise DFTRequestValidationException(
-                "The value of the 'atoms' key is not a list."
-            )
-        return Molecule(atoms=[Atom(**a) for a in atom_dicts])
+            raise DFTRequestValidationException("The value of the 'atoms' key is not a list.")
+        atoms = [Atom(**a) for a in atom_dicts]
+        return partial(Molecule, atoms=atoms)(**d)
 
 
 @dataclass
 class Atom:
     symbol: str
-    position: list[float, float, float]
+    position: tuple[float, float, float]
 
     def __str__(self) -> str:
         """Create a string representation for this atom that is an element of
-        the molecular structure input for pyscf
-        """
-        return f"{self.symbol} {self.position[0]} {self.position[1]} {self.position[2]}"
+        the molecular structure input for pyscf."""
+        x, y, z = self.position
+        return f"{self.symbol} {x} {y} {z}"
+
+
+@dataclass
+class Orbital:
+    energy: float
+    occupancy: float
 
 @dataclass
 class SinglePointEnergyResponse:
     energy: float
+    converged: bool
+    orbitals: list[Orbital]
 
 geometric_conv_params = { # These are the default settings
     'convergence_energy': 1e-6,  # Eh

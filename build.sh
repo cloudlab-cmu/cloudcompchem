@@ -6,7 +6,7 @@ set -o pipefail
 # Check that the usage is correct
 if [ ! $# -eq 0 ]
 then
-  echo "Usage: bash deploy/build.sh"
+  echo "Usage: bash build.sh"
   exit
 fi
 
@@ -17,8 +17,8 @@ DEPLOY_TAG="${ISODATE:0:10}--${GIT_COMMIT:0:8}"
 IMAGE_NAME="emeraldsci/cloudcompchem:$DEPLOY_TAG"
 
 echo "Building..."
-docker build --pull -f deploy/Dockerfile -t "$IMAGE_NAME" .
-docker push $IMAGE_NAME
+docker build -t "$IMAGE_NAME" .
+# docker push $IMAGE_NAME
 
 echo "Building $IMAGE_NAME complete!"
 
@@ -29,4 +29,4 @@ echo "== image name                                                          =="
 echo "========================================================================="
 echo
 echo "Image Name: $IMAGE_NAME"
-echo 
+echo

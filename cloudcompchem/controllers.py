@@ -1,22 +1,23 @@
-from http import HTTPStatus
 import logging
 from dataclasses import asdict
-from pysll import Constellation
-from cloudcompchem.models import DFTRequest
-from cloudcompchem.exceptions import NotLoggedInException, DFTRequestValidationException
-from cloudcompchem.utils import run_dft_calculation
+from http import HTTPStatus
 
 from flask import jsonify, make_response
 from flask import request as global_request
+from pysll import Constellation
 
-# TODO: import exceptions up here to be used
-# from exceptions import ControllerException
+from cloudcompchem.dft import calculate_energy
+from cloudcompchem.exceptions import DFTRequestValidationException, NotLoggedInException
+from cloudcompchem.models import EnergyRequest
 
 
 class DFTController:
-    """This is the heart of the service which handles any training or simulation requests.
+    """This is the heart of the service which handles any training or
+    simulation requests.
 
-    Feel free to update this class to hold any state required for your models."""
+    Feel free to update this class to hold any state required for your
+    models.
+    """
 
     def __init__(self, logger: logging.Logger, constellation: Constellation):
 
@@ -33,21 +34,23 @@ class DFTController:
         # 10 seconds before killing them on shutdown.
         self._shutdown_timeout = 10
 
-    ###################################################################################
-    ### You must implement the two functions below to have a functional simulation ####
-    ###################################################################################
+    """
+    You must implement the two functions below to have a functional simulation
+    """
 
     def health_check(self):
         """This is used to test if the service is healthy and running.
 
-        Generally there should be no reason to update this function."""
+        Generally there should be no reason to update this function.
+        """
 
         return jsonify({"message": "OK"})
 
     def simulate_energy(self):
         """This is called when a simulation is requested.
 
-        This should be used to (asyncronously) trigger a a run of the model.
+        This should be used to (asynchronously) trigger a a run of the
+        model.
         """
 
         self._logger.info("Received request to simulate a molecule!")
@@ -55,15 +58,14 @@ class DFTController:
         # Parse the request
         try:
             dft_input = self._parse_dft_request(global_request)
-        except DFTRequestValidationException as te:
-            self._logger.error(f"Validation error: {te.message} Returning")
-            return (te.message, te.status_code)
-        except NotLoggedInException as ex:
+        except DFTRequestValidationException as err:
+            self._logger.error(f"Validation error: {err.message} Returning")
+            return (err.message, err.status_code)
+        except NotLoggedInException as err:
             self._logger.error("Not logged in! Returning")
-            return (ex.message, ex.status_code)
-        except Exception as e:
-            # unhandled exception!!! return a 500
-            self._logger.error(f"Unhandled exception!: {e}")
+            return (err.message, err.status_code)
+        except Exception as err:
+            self._logger.error(f"Unhandled exception: {err}")
             return (
                 "Error encountered while unpacking request JSON, please inspect for errors and try again.",
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -78,58 +80,46 @@ class DFTController:
         # NOTE: this is not actually parallel in python since python has a GIL
         # for this process, but we can handle additional IO requests
         self._logger.info("Triggering dft simulation request")
+
         try:
-            response = run_dft_calculation(dft_input)
-        except RuntimeError as re:
-            self._logger.error(
-                f"Runtime error encountered during DFT calculation due to misconfigured inputs: {re}."
-            )
-            return (
-                f"Runtime error encountered during DFT calculation due to misconfigured inputs: {re}.",
-                HTTPStatus.BAD_REQUEST,
-            )
-        except KeyError as ke:
-            message = f"Runtime error encountered during DFT calculation due to misconfigured inputs: {ke}."
-            self._logger.error(message)
-            return (message, HTTPStatus.BAD_REQUEST)
+            energy_dict = calculate_energy(dft_input)
+        except (RuntimeError, KeyError) as err:
+            message = f"Runtime error encountered during DFT calculation due to misconfigured inputs: {err}"
+            self._logger.warning(message)
+            return message, HTTPStatus.BAD_REQUEST
         except AssertionError:
             message = "Found a runtime exception likely due to an invalid charge specification."
-            self._logger.error(message)
-            return (message, HTTPStatus.BAD_REQUEST)
-        except Exception as e:
-            self._logger.error(f"Unhandled exception of type ({type(e)}): {e}.")
-            return (
-                f"Unhandled exception: {e}.",
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
+            self._logger.warning(message)
+            return message, HTTPStatus.BAD_REQUEST
+        except Exception as err:
+            self._logger.error(f"Unhandled exception of type ({type(err)}): {err}.")
+            return f"Unhandled exception: {err}.", HTTPStatus.INTERNAL_SERVER_ERROR
 
-        # Return a 202 accepted
-        return make_response(asdict(response), HTTPStatus.OK)
+        return make_response(asdict(energy_dict), HTTPStatus.OK)
 
-    def _parse_dft_request(self, request) -> DFTRequest:
-        """Parse the simulation request into the auth token, the protocols to simulation, and the model to use.
+    def _parse_dft_request(self, request) -> EnergyRequest:
+        """Parse the simulation request into the auth token, the protocols to
+        simulation, and the model to use.
 
-        Generally there should be no reason to update this function."""
+        Generally there should be no reason to update this function.
+        """
         token = self._retrieve_auth_token_from_request(request)
-        self._logger.info(f"Got token from request! Attempting to validate token...")
+        self._logger.info("Got token from request! Attempting to validate token...")
+        self._constellation._auth_token = token
         try:
-            self._constellation._auth_token = token
-            self._constellation.me()
-        except:
-            raise NotLoggedInException("No authentication from login was provided!")
-        self._logger.info(f"Token validated!")
+            _ = self._constellation.me()
+        except Exception:
+            raise NotLoggedInException("No authentication from login was provided!") from None
+        self._logger.info("Token validated!")
 
         # unpack the request into a struct
         req_info = request.json
-        self._logger.info(
-            f"Attempting to unmarshal the request payload to internal struct..."
-        )
+        self._logger.info("Attempting to unmarshal the request payload to internal struct...")
+        self._logger.debug(f"req info = {req_info}")
         if req_info is None:
-            raise DFTRequestValidationException(
-                "No JSON body found, please include one to run a calculation."
-            )
-        dft_input = DFTRequest.from_dict(req_info)
-        self._logger.info(f"Request constructed!")
+            raise DFTRequestValidationException("No JSON body found, please include one to run a calculation.")
+        dft_input = EnergyRequest.from_dict(req_info)
+        self._logger.info("Request constructed!")
 
         return dft_input
 

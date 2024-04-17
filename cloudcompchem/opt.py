@@ -1,6 +1,11 @@
-from cloudcompchem.models import StructureRelaxationResponse, DFTOptRequest
+from cloudcompchem.models import StructureRelaxationResponse, DFTOptRequest, Atom, Molecule
 from pyscf import gto, dft
+from pyscf.geomopt.geometric_solver import optimize as geomeTRIC_opt
+from pyscf.geomopt.berny_solver import optimize as berny_opt
 import logging
+import numpy as np
+
+optimizers = {'geomeTRIC':geomeTRIC_opt, 'berny':berny_opt}
 
 _logger = logging.getLogger("DFT-CALCULATOR")
 
@@ -24,9 +29,12 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
         calc = dft.UKS(mol)
     else:
         calc = dft.RKS(mol)
-    mol_eq = calc.Gradients().optimizer(solver=dft_input.solver).kernel()
+
+    optimizer = optimizers[dft_input.solver]
+    mol_eq = optimizer(method=calc, **dft_input.conv_params)
     energy = calc.kernel()
     _logger.info("Finished dft optimization!")
-    response_mol = {"atoms":[{"symbol":i[0], "position":i[1]} for i in mol_eq.atom]}
+    list_of_atoms = [Atom(atom, list(np.round(position, 7))) for atom, position in mol_eq.atom]
+    response_mol = Molecule(list_of_atoms)
 
     return StructureRelaxationResponse(molecule=response_mol, energy=energy) 

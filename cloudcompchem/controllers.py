@@ -1,12 +1,14 @@
 import logging
+from dataclasses import asdict
 from http import HTTPStatus
 
 from flask import jsonify, make_response
 from flask import request as global_request
 from pysll import Constellation
 
-from cloudcompchem.dft import EnergyRequest, calculate_energy
+from cloudcompchem.dft import calculate_energy
 from cloudcompchem.exceptions import DFTRequestValidationException, NotLoggedInException
+from cloudcompchem.models import EnergyRequest
 
 
 class DFTController:
@@ -80,7 +82,7 @@ class DFTController:
         self._logger.info("Triggering dft simulation request")
 
         try:
-            energy = calculate_energy(dft_input)
+            energy_dict = calculate_energy(dft_input)
         except (RuntimeError, KeyError) as err:
             message = f"Runtime error encountered during DFT calculation due to misconfigured inputs: {err}"
             self._logger.warning(message)
@@ -93,7 +95,7 @@ class DFTController:
             self._logger.error(f"Unhandled exception of type ({type(err)}): {err}.")
             return f"Unhandled exception: {err}.", HTTPStatus.INTERNAL_SERVER_ERROR
 
-        return make_response({"energy": energy}, HTTPStatus.OK)
+        return make_response(asdict(energy_dict), HTTPStatus.OK)
 
     def _parse_dft_request(self, request) -> EnergyRequest:
         """Parse the simulation request into the auth token, the protocols to
@@ -113,6 +115,7 @@ class DFTController:
         # unpack the request into a struct
         req_info = request.json
         self._logger.info("Attempting to unmarshal the request payload to internal struct...")
+        self._logger.debug(f"req info = {req_info}")
         if req_info is None:
             raise DFTRequestValidationException("No JSON body found, please include one to run a calculation.")
         dft_input = EnergyRequest.from_dict(req_info)

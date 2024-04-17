@@ -2,22 +2,30 @@
 Goal of this repo is to provide a set of code for creating computational chemistry tools to be run on the cloud at ECL in collaboration with CMU. This will be done via a webserver that responds to requests by running DFT calculations.
 
 # Details
-The web server is built on Flask, and has two primary endpoints, `/simulate` and `/results`. The `/simulate` endpoint serves to launch the calculation in a separate thread running on the same computer that the webserver is hosted on, and returns a `202` accepted with an `id` token to track the simulation progress. The `/results` endpoint queries the server for the completion status of the simulation, and returns a packet of metadata if the simulation is complete.
+`cloudcompchem` is provided as an application with both a command line interface (CLI) and a set of python bindings that can be used in additional application logic. The CLI can run both local calculations and spin up a webserver that serves calculation requests to the python bindings.
+
+The web server is built on Flask, and has one primary endpoint (for now), `/energy`. The `/energy` endpoint serves to calculate the single point energy of a molecule and return the total and orbital energies (along with other metadata). A successful calculation returns a `200` OK, when run as a server, and gives a `400` Bad Request if any part of the input is malformed. It may also give a `401` Unauthorized if the user is either not logged in or provides an invalid auth token.
 
 # Getting Started
 
 ## Installing Dependencies
 
-Create a fresh virtual environment (e.g. with `conda`, `venv`, etc.). Once the environment has been built and activated, navigate to the `ECL-collab` folder, and call `pip install -r requirements/development.txt` to install all the project requirements.
+Create a fresh virtual environment (e.g. with `conda`, `venv`, etc.). Once the environment has been built and activated, `pip install .` while in the application directory. For developers, go to the `cloudcompchem` directory and `pip install -r requirements-dev.txt`.
 
 ## Running locally
 
 To test that it installed correctly, attempt to run it:
 ```sh
-FLASK_ENV=development gunicorn -b 0.0.0.0:5000 "wsgi:app" --log-level=DEBUG --chdir ./svc
+cloudcompchem serve
 ```
 
-This will launch the web service locally on port 5000.  It should start up without errors.
+This will launch the web service locally on port 5000 with 4 workers. It should start up without errors.
+
+You can modify the state of the web server with additional keyword arguments:
+```sh
+cloudcompchem serve --bind 0.0.0.0:5400 --workers 16
+```
+The above command directs the server to bind to port `5400` at local host (`0.0.0.0`) and increases the number of workers (threads) to `16`.
 
 ## Making requests
 
@@ -32,6 +40,35 @@ or
 ```
 curl http://localhost/health-check
 ```
+
+## Running locally from command line
+
+To run an energy calculation from the command line, you may:
+```sh
+cloudcompchem energy input.json
+```
+where `input.json` is a structured file containing functional/basis set information along with molecule details.
+
+### Input payload structure
+
+To run an energy calculation, the input payload must be correctly specified. A typical input structure looks like:
+```json
+{
+  "config": {
+    "basis_set": "ccpvdz",
+    "functional": "pbe,pbe",
+  },
+  "molecule": {
+    "charge": 0,
+    "spin_multiplicity": 1,
+    "atoms": [
+      {"position": [0., 0., 0.], "symbol": "H"},
+      {"position": [0., 0., 1.], "symbol": "H"},
+    ]
+  }
+}
+```
+This payload can be inputted as a body to a json HTTP request, or as a file to the command line invocation. The `basis_set` has to be specified according to `pyscf` specifications, and the `functional` value must be present in the `LibXC` library. Note that the `functional` value has two components separated by a comma (without a space) representing the exchange and correlation functionals separately.
 
 ## Running Tests
 

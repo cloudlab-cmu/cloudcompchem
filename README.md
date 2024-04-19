@@ -98,3 +98,14 @@ You may then send requests against port 5000 in the same way as with a locally r
 ```sh
 curl http://0.0.0.0:5000/health-check
 ```
+
+
+----
+
+#### Asynchronous runtime
+
+```
+brew install redis
+brew services start redis
+celery -A make_celery worker --loglevel INFO
+```

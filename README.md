@@ -105,7 +105,8 @@ curl http://0.0.0.0:5000/health-check
 #### Asynchronous runtime
 
 ```
-brew install redis
-brew services start redis
-celery -A make_celery worker --loglevel INFO
+docker run --rm --name=cloudcompchem-celery-redis -d -p 6379:6379 redis
+celery -A cloudcompchem.make_celery worker --loglevel INFO
+celery -A cloudcompchem.make_celery flower
+while true; do http --form POST :5000/aadd a=2 b=40 | jq -r .result_id; sleep 0.05; done
 ```

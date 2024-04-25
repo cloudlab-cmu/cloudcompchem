@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import random
 
 from celery import Celery, Task
 from flask import Flask, request
@@ -81,8 +82,8 @@ def celery_init_app(app: Flask) -> Celery:
 
 
 def async_add() -> dict[str, object]:
-    a = request.form.get("a", type=int)
-    b = request.form.get("b", type=int)
+    a = request.form.get("a", default=random.randint(0, 100), type=int)
+    b = request.form.get("b", default=random.randint(0, 100), type=int)
     result = add_together.delay(a, b)  # pyright:ignore
     return {"result_id": result.id}
 

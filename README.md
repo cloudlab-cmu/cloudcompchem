@@ -99,14 +99,87 @@ You may then send requests against port 5000 in the same way as with a locally r
 curl http://0.0.0.0:5000/health-check
 ```
 
+## Asynchronous runtime
 
-----
+We use [celery](https://docs.celeryq.dev/en/stable/getting-started/introduction.html) to power our
+asynchronous runtime and enable long-running computations to run in the background without
+blocking the user.
 
-#### Asynchronous runtime
+Celery requires a message broker to queue up the task definitions and store the results. We use
+[redis](https://redis.io/) for that purpose. The easiest way to get `redis` running locally is through
+Docker:
 
 ```
 docker run --rm --name=cloudcompchem-celery-redis -d -p 6379:6379 redis
+```
+
+A simple example of a long-running task can be found in the `/aadd` (for *a*synchronous *add*) endpoint.
+Let's make a call to it:
+
+```
+$ http --form POST :5000/aadd a=100 b=99
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 53
+Content-Type: application/json
+Date: Fri, 26 Apr 2024 00:15:26 GMT
+Server: gunicorn
+
+{
+    "result_id": "1d1347ab-0031-4f70-8d7a-b5f7c16e203f"
+}
+```
+
+Because waiting for the actual results is prohibitive, what we get instead a `result_id`, a unique
+identifier for the task that our asynchronous runtime should process. We can refer to this ID to
+query the status of our computation:
+
+```
+http :5000/result/1d1347ab-0031-4f70-8d7a-b5f7c16e203f
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 48
+Content-Type: application/json
+Date: Fri, 26 Apr 2024 00:18:56 GMT
+Server: gunicorn
+
+{
+    "ready": false,
+    "successful": false,
+    "value": null
+}
+```
+
+We need a `celery` worker to actually run the computation. Here's how we launch `celery`:
+
+```
 celery -A cloudcompchem.make_celery worker --loglevel INFO
-celery -A cloudcompchem.make_celery flower
-while true; do http --form POST :5000/aadd a=2 b=40 | jq -r .result_id; sleep 0.05; done
+```
+
+The Celery worker connects to Redis and it sees that there's a message in queue corresponding to
+the computation we requested earlier. It picks up the message from the queue and actually runs it
+in a dedicated process. After some time, you should be able to query your results again:
+
+```
+http :5000/result/1d1347ab-0031-4f70-8d7a-b5f7c16e203f
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 45
+Content-Type: application/json
+Date: Fri, 26 Apr 2024 00:20:44 GMT
+Server: gunicorn
+
+{
+    "ready": true,
+    "successful": true,
+    "value": 199
+}
+```
+
+If all of that sounded like a lot of steps, you might want to use
+[docker-compose](https://docs.docker.com/compose/) to bring all of those services up with a single
+command:
+
+```
+docker-compose up
 ```

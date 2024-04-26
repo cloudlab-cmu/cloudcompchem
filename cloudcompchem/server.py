@@ -30,8 +30,8 @@ def create_app(constellation: Constellation | None = None) -> Flask:
     # celery
     app.config.from_mapping(
         CELERY=dict(
-            broker_url="redis://localhost",
-            result_backend="redis://localhost",
+            broker_url=f"redis://{os.environ.get('CLOUDCOMPCHEM_REDIS_URL', 'localhost')}",
+            result_backend=f"redis://{os.environ.get('CLOUDCOMPCHEM_REDIS_URL', 'localhost')}",
             task_ignore_result=True,
         ),
     )

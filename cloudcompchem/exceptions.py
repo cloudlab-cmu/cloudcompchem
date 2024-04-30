@@ -1,6 +1,17 @@
 from http import HTTPStatus
 
 
+class ServerException(Exception):
+    """Base class for all exceptions thrown during server runtime, inferred
+    from non 2xx responses."""
+
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self) -> str:
+        return f"Server Exception: {self.message}"
+
+
 class ControllerException(Exception):
     """Base class for all thrown exceptions."""
 
@@ -9,7 +20,7 @@ class ControllerException(Exception):
         self.status_code = status_code
 
     def __str__(self):
-        return "{} (StatusCode: {})".format(self.message, self.status_code)
+        return f"{self.message} (StatusCode: {self.status_code})"
 
 
 class NotLoggedInException(ControllerException):

@@ -109,6 +109,12 @@ class SinglePointEnergyResponse:
     converged: bool
     orbitals: list[Orbital]
 
+    @staticmethod
+    def from_dict(d: dict) -> SinglePointEnergyResponse:
+        orbital_info = d["orbitals"]
+        orbitals = [Orbital(**kwargs) for kwargs in orbital_info]
+        return SinglePointEnergyResponse(orbitals=orbitals, converged=d["converged"], energy=d["energy"])
+
 geometric_conv_params = { # These are the default settings
     'convergence_energy': 1e-6,  # Eh
     'convergence_grms': 3e-4,    # Eh/Bohr

@@ -1,43 +1,13 @@
 from copy import deepcopy
 from dataclasses import asdict
 
-import pytest
-
 from cloudcompchem.exceptions import DFTRequestValidationException
-from cloudcompchem.models import Atom, EnergyRequest, Molecule
-
-
-@pytest.fixture()
-def mol():
-    atom_dicts = {
-        "atoms": [
-            {"symbol": "O", "position": [0, 0, 0]},
-            {"symbol": "H", "position": [0, 1, 0]},
-            {"symbol": "H", "position": [0, 0, 1]},
-        ],
-        "charge": 0,
-        "spin_multiplicity": 1,
-    }
-    return Molecule.from_dict(atom_dicts)
-
-
-@pytest.fixture()
-def req_dict():
-    return {
-        "config": {
-            "functional": "pbe,pbe",
-            "basis_set": "ccpvdz",
-        },
-        "molecule": {
-            "atoms": [
-                {"symbol": "O", "position": [0, 0, 0]},
-                {"symbol": "H", "position": [0, 1, 0]},
-                {"symbol": "H", "position": [0, 0, 1]},
-            ],
-            "charge": 0,
-            "spin_multiplicity": 1,
-        },
-    }
+from cloudcompchem.models import (
+    Atom,
+    EnergyRequest,
+    Molecule,
+    SinglePointEnergyResponse,
+)
 
 
 def test_atom_deserialize():
@@ -148,3 +118,8 @@ def test_invalid_request_deserialization(req_dict):
     assert isinstance(r, DFTRequestValidationException)
     assert "No molecule" in r.message
     assert r.status_code == 400
+
+
+def test_single_point_energy_deserialization(expected_energy_response):
+    resp = SinglePointEnergyResponse.from_dict(expected_energy_response)
+    assert asdict(resp) == expected_energy_response

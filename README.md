@@ -10,7 +10,7 @@ The web server is built on Flask, and has one primary endpoint (for now), `/ener
 
 ## Installing Dependencies
 
-Create a fresh virtual environment (e.g. with `conda`, `venv`, etc.). Once the environment has been built and activated, `pip install .` while in the application directory. For developers, go to the `cloudcompchem` directory and `pip install -r requirements-dev.txt`.
+Create a fresh virtual environment (e.g. with `conda`, `venv`, etc.). Once the environment has been built and activated, `pip install -e .` while in the application directory. For developers, go to the `cloudcompchem` directory and `pip install -r requirements-dev.txt`.
 
 ## Running locally
 

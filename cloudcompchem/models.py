@@ -13,7 +13,9 @@ atomic_numbers = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5, 'C': 6, 'N': 7, 'O'
 'Lu': 71, 'Hf': 72, 'Ta': 73, 'W': 74, 'Re': 75, 'Os': 76, 'Ir': 77, 'Pt': 78, 'Au': 79, 'Hg': 80, 'Tl': 81, 'Pb': 82, 'Bi': 83, 'Po': 84,
 'At': 85, 'Rn': 86, 'Fr': 87, 'Ra': 88, 'Ac': 89, 'Th': 90, 'Pa': 91, 'U': 92, 'Np': 93, 'Pu': 94, 'Am': 95, 'Cm': 96, 'Bk': 97, 'Cf': 98}
 
-def check_charge_spin(charge, spin, atom_symbols):
+def check_charge_spin(molecule: Molecule):
+    charge, spin = molecule.charge, molecule.spin_multiplicity
+    atom_symbols = [atom.symbol for atom in Molecule.atoms]
     total_e = sum([atomic_numbers[symbol] for symbol in atom_symbols])
     total_e = total_e%2 - charge
     spin = (spin-1)%2
@@ -38,6 +40,7 @@ class EnergyRequest:
         if not isinstance(mol_dict, dict):
             raise DFTRequestValidationException("Molecule information in request is not in JSON format.")
         molecule = Molecule.from_dict(mol_dict)
+        check_charge_spin(molecule=molecule)
 
         # TODO: switch our dataclasses to pydantic BaseModels
         if not isinstance(mol_dict.get("charge"), int):
@@ -159,6 +162,7 @@ class DFTOptRequest:
                 "Molecule information in request is not in JSON format."
             )
         molecule = Molecule.from_dict(mol_dict)
+        check_charge_spin(molecule=molecule)
 
         if not isinstance(mol_dict.get("charge"), int):
             raise DFTRequestValidationException("Charge must be an integer.")

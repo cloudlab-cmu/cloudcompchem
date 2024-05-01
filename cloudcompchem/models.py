@@ -199,3 +199,11 @@ class DFTOptRequest:
 class StructureRelaxationResponse:
     molecule: Molecule
     energy: float
+    converged: bool
+    orbitals: list[Orbital]
+
+    @staticmethod
+    def from_dict(d: dict) -> StructureRelaxationResponse:
+        orbital_info = d["orbitals"]
+        orbitals = [Orbital(**kwargs) for kwargs in orbital_info]
+        return StructureRelaxationResponse(orbitals=orbitals, converged=d["converged"], energy=d["energy"], molecule=d['molecule'])

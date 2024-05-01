@@ -1,5 +1,7 @@
 from cloudcompchem.models import StructureRelaxationResponse, DFTOptRequest, Atom, Molecule
-from pyscf import gto, dft
+from cloudcompchem.utils import M
+
+from pyscf.dft import RKS, UKS
 from pyscf.geomopt.geometric_solver import optimize as geomeTRIC_opt
 from pyscf.geomopt.berny_solver import optimize as berny_opt
 import logging
@@ -15,23 +17,21 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
     _logger.info("Starting dft optimization!")
     # build the input structure with gto
     # spin in pyscf is 2S not 2S+1
-    s = dft_input.spin_multiplicity - 1
-    mol = gto.M(
+    s = dft_input.molecule.spin_multiplicity - 1
+    mol = M(
         atom=str(dft_input.molecule),
-        basis=dft_input.basis_set,
-        charge=dft_input.charge,
+        basis=dft_input.config.basis_set,
+        charge=dft_input.molecule.charge,
         spin=s,
     )
 
     # run the dft calculation for the given functional
-    if dft_input.spin_multiplicity > 1:
-        # use unrestricted kohn-sham
-        calc = dft.UKS(mol)
-    else:
-        calc = dft.RKS(mol)
+    fn = UKS if dft_input.molecule.spin_multiplicity > 1 else RKS
+    calc = fn(mol)
+    calc.xc = dft_input.config.functional
 
-    optimizer = optimizers[dft_input.solver]
-    mol_eq = optimizer(method=calc, **dft_input.conv_params)
+    optimizer = optimizers[dft_input.solver_config.solver]
+    mol_eq = optimizer(method=calc, **dft_input.solver_config.conv_params)
     energy = calc.kernel()
     _logger.info("Finished dft optimization!")
     list_of_atoms = [Atom(atom, list(np.round(position, 7))) for atom, position in mol_eq.atom]

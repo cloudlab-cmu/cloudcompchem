@@ -133,14 +133,15 @@ berny_conv_params = {  # These are the default settings
 default_conv_params = {'geomeTRIC': geometric_conv_params, 'berny': berny_conv_params}
 
 @dataclass
-class DFTOptRequest:
-    functional: str
-    basis_set: str
-    spin_multiplicity: int
-    charge: int
-    molecule: Molecule
+class SolverConfig:
     solver: str
     conv_params: dict
+
+@dataclass
+class DFTOptRequest:
+    config: FunctionalConfig
+    molecule: Molecule
+    solver_config: SolverConfig
 
     @staticmethod
     def from_dict(d: dict) -> DFTOptRequest:
@@ -157,31 +158,38 @@ class DFTOptRequest:
             raise DFTRequestValidationException(
                 "Molecule information in request is not in JSON format."
             )
-        mol = Molecule.from_dict(mol_dict)
+        molecule = Molecule.from_dict(mol_dict)
 
-        if not isinstance(d.get("charge"), int):
+        if not isinstance(mol_dict.get("charge"), int):
             raise DFTRequestValidationException("Charge must be an integer.")
-        
-        if not isinstance(d.get("spin_multiplicity"), int):
+        if not isinstance(mol_dict.get("spin_multiplicity"), int):
             raise DFTRequestValidationException("Spin multiplicity must be an integer.")
+        
+        # get the functional config
+        config_dict = d.get("config")
+        if config_dict is None:
+            raise DFTRequestValidationException(
+                "No functional configuration has been specified (use the 'config' keyword)."
+            )
+        config = FunctionalConfig(**config_dict)
         
         if d.get("solver") not in ['geomeTRIC', 'berny']:
             raise DFTRequestValidationException("Only geomeTRIC and berny are supported.")
-        
         # parse the convergence parameters and create a complete dictionary of convergence parameters to be passed
         # note that this will be solver-specific
-        base_conv_params = d["conv_params"].copy()
+        base_conv_params = d.pop("conv_params", None)
         default_conv_params_copy = default_conv_params[d.get("solver")].copy()
         for key in base_conv_params: 
             if key in default_conv_params_copy:
                 default_conv_params_copy[key] = base_conv_params[key]
             else:
                 raise DFTRequestValidationException(f"Convergence parameter {key} is not supported.")
-        d["conv_params"] = base_conv_params
+        solver = d.pop("solver", None)
+        solver_config = SolverConfig(solver, default_conv_params_copy)
 
         # curry the unpacked molecule into the request instantiation and then add
         # the rest of the args by unpacking the initial dict
-        return partial(DFTOptRequest, molecule=mol)(**d)
+        return DFTOptRequest(config=config, molecule=molecule, solver_config=solver_config)
 
 @dataclass
 class StructureRelaxationResponse:

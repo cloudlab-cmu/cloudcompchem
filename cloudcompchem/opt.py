@@ -35,8 +35,10 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
     energy = calc.kernel()
     logger.info("Finished dft optimization!")
     list_of_atoms = [Atom(atom, list(np.round(position, 7))) for atom, position in mol_eq.atom]
-    response_mol = Molecule(list_of_atoms)
 
+    charge, spin_multiplicity = dft_input.molecule.charge, dft_input.molecule.spin_multiplicity
+    response_mol = Molecule(list_of_atoms, spin_multiplicity=spin_multiplicity, charge=charge)
+    
     return StructureRelaxationResponse(
         molecule=response_mol, 
         energy=energy, 

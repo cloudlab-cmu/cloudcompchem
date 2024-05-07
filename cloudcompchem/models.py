@@ -15,12 +15,13 @@ atomic_numbers = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5, 'C': 6, 'N': 7, 'O'
 
 def check_charge_spin(molecule: Molecule):
     charge, spin = molecule.charge, molecule.spin_multiplicity
-    atom_symbols = [atom.symbol for atom in Molecule.atoms]
+    atom_symbols = [atom.symbol for atom in molecule.atoms]
     total_e = sum([atomic_numbers[symbol] for symbol in atom_symbols])
     total_e = total_e%2 - charge
     spin = (spin-1)%2
     try:
         assert total_e==spin
+        return True
     except:
         raise DFTRequestValidationException(f"Combination of charge={charge} and spin multiplicity={spin} is not valid.")
 
@@ -40,7 +41,7 @@ class EnergyRequest:
         if not isinstance(mol_dict, dict):
             raise DFTRequestValidationException("Molecule information in request is not in JSON format.")
         molecule = Molecule.from_dict(mol_dict)
-        check_charge_spin(molecule=molecule)
+        assert check_charge_spin(molecule=molecule)
 
         # TODO: switch our dataclasses to pydantic BaseModels
         if not isinstance(mol_dict.get("charge"), int):
@@ -162,7 +163,7 @@ class DFTOptRequest:
                 "Molecule information in request is not in JSON format."
             )
         molecule = Molecule.from_dict(mol_dict)
-        check_charge_spin(molecule=molecule)
+        assert check_charge_spin(molecule=molecule)
 
         if not isinstance(mol_dict.get("charge"), int):
             raise DFTRequestValidationException("Charge must be an integer.")
@@ -183,11 +184,12 @@ class DFTOptRequest:
         # note that this will be solver-specific
         base_conv_params = d.pop("conv_params", None)
         default_conv_params_copy = default_conv_params[d.get("solver")].copy()
-        for key in base_conv_params: 
-            if key in default_conv_params_copy:
-                default_conv_params_copy[key] = base_conv_params[key]
-            else:
-                raise DFTRequestValidationException(f"Convergence parameter {key} is not supported.")
+        if isinstance(base_conv_params, dict):
+            for key in base_conv_params: 
+                if key in default_conv_params_copy:
+                    default_conv_params_copy[key] = base_conv_params[key]
+                else:
+                    raise DFTRequestValidationException(f"Convergence parameter {key} is not supported.")
         solver = d.pop("solver", None)
         solver_config = SolverConfig(solver, default_conv_params_copy)
 

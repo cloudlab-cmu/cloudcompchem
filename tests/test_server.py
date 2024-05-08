@@ -44,10 +44,10 @@ def test_simulate_energy(client, req_dict, caplog, match_mol, expected_energy_re
 
 def test_simulate_energy_spin_error(client, req_dict, caplog):
     caplog.set_level(logging.DEBUG)
-    req_dict["molecule"]["spin_multiplicity"] = 0
+    molecule = req_dict["molecule"] | {"spin_multiplicity": 0}
     response = client.post(
         "/energy",
-        json=req_dict,
+        json=req_dict | {"molecule": molecule},
         headers={"Authorization": "Bearer abc123"},
     )
     assert response.status_code == 400

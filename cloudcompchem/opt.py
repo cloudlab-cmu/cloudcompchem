@@ -40,22 +40,22 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
     optimizer = optimizers[dft_input.solver_config.solver]
     mol_eq = optimizer(method=calc, **dft_input.solver_config.conv_params)
     energy = calc.kernel()
+    assert energy is not None
+
     logger.info("Finished dft optimization!")
-    list_of_atoms = [Atom(atom, list(np.round(position, 7))) for atom, position in mol_eq.atom]
+    list_of_atoms = [Atom(atom, tuple(np.round(position, 7))) for atom, position in mol_eq.atom]
 
     charge, spin_multiplicity = dft_input.molecule.charge, dft_input.molecule.spin_multiplicity
     response_mol = Molecule(list_of_atoms, spin_multiplicity=spin_multiplicity, charge=charge)
+
+    assert isinstance(calc.mo_energy, np.ndarray)
+    assert isinstance(calc.mo_occ, np.ndarray)
+    energies = map(float, calc.mo_energy)
+    occupancies = calc.mo_occ
 
     return StructureRelaxationResponse(
         molecule=response_mol,
         energy=energy,
         converged=calc.converged,
-        orbitals=[
-            Orbital(energy=energy, occupancy=occ)
-            for energy, occ in zip(
-                calc.mo_energy,
-                calc.mo_occ,
-                strict=True,
-            )
-        ],
+        orbitals=[Orbital(energy=energy, occupancy=occ) for energy, occ in zip(energies, occupancies, strict=True)],
     )

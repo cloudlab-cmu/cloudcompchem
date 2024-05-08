@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from ast import Assert
 from dataclasses import dataclass
 from functools import partial
 
-from .exceptions import DFTRequestValidationException, MoleculeSpinAndChargeViolationError
+from .exceptions import (
+    DFTRequestValidationException,
+    MoleculeSpinAndChargeViolationError,
+)
 
 atomic_numbers = {
     "H": 1,
@@ -230,7 +232,7 @@ berny_conv_params = {  # These are the default settings
     "steprms": 1.2e-3,  # [Bohr|rad]
 }
 
-default_conv_params = {"geomeTRIC": geometric_conv_params, "berny": berny_conv_params}
+DEFAULT_CONV_PARAMS = {"geomeTRIC": geometric_conv_params, "berny": berny_conv_params}
 
 
 @dataclass
@@ -275,7 +277,7 @@ class DFTOptRequest:
         # parse the convergence parameters and create a complete dictionary of convergence parameters to be passed
         # note that this will be solver-specific
         base_conv_params = d.pop("conv_params", None)
-        default_conv_params_copy = default_conv_params[d.get("solver")].copy()
+        default_conv_params_copy = DEFAULT_CONV_PARAMS[d["solver"]].copy()
         if isinstance(base_conv_params, dict):
             for key in base_conv_params:
                 if key in default_conv_params_copy:

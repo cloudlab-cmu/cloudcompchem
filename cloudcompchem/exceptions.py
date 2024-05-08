@@ -13,9 +13,8 @@ class ServerException(Exception):
 
 
 class MoleculeSpinAndChargeViolationError(Exception):
-    """
-    Triggered when the spin multiplicity and charge for a molecule are invalid
-    """
+    """Triggered when the spin multiplicity and charge for a molecule are
+    invalid."""
 
     def __init__(self, spin_multiplicity: int, charge: int):
         self.spin_multiplicity = spin_multiplicity

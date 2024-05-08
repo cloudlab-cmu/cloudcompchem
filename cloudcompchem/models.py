@@ -107,21 +107,6 @@ atomic_numbers = {
 }
 
 
-def check_charge_spin(molecule: Molecule):
-    charge, spin = molecule.charge, molecule.spin_multiplicity
-    atom_symbols = [atom.symbol for atom in molecule.atoms]
-    total_e = sum([atomic_numbers[symbol] for symbol in atom_symbols])
-    total_e = total_e % 2 - charge
-    spin = (spin - 1) % 2
-    try:
-        assert total_e == spin
-        return True
-    except:
-        raise DFTRequestValidationException(
-            f"Combination of charge={charge} and spin multiplicity={spin} is not valid."
-        )
-
-
 @dataclass
 class EnergyRequest:
     config: FunctionalConfig
@@ -138,7 +123,6 @@ class EnergyRequest:
         if not isinstance(mol_dict, dict):
             raise DFTRequestValidationException("Molecule information in request is not in JSON format.")
         molecule = Molecule.from_dict(mol_dict)
-        assert check_charge_spin(molecule=molecule)
 
         # TODO: switch our dataclasses to pydantic BaseModels
         if not isinstance(mol_dict.get("charge"), int):
@@ -173,6 +157,12 @@ class Molecule:
         """Create a string representation that fits into the input for
         pyscf."""
         return "; ".join(str(a) for a in self.atoms)
+
+    def __post_init__(self):
+        charge, spin = self.charge, (self.spin_multiplicity - 1) % 2
+        total_e = sum(atomic_numbers[atom.symbol] for atom in self.atoms) - charge
+        total_e %= 2
+        assert total_e == spin
 
     @staticmethod
     def from_dict(d: dict) -> Molecule:
@@ -259,7 +249,6 @@ class DFTOptRequest:
         if not isinstance(mol_dict, dict):
             raise DFTRequestValidationException("Molecule information in request is not in JSON format.")
         molecule = Molecule.from_dict(mol_dict)
-        assert check_charge_spin(molecule=molecule)
 
         if not isinstance(mol_dict.get("charge"), int):
             raise DFTRequestValidationException("Charge must be an integer.")

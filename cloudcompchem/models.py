@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from ast import Assert
 from dataclasses import dataclass
 from functools import partial
 
-from .exceptions import DFTRequestValidationException
+from .exceptions import DFTRequestValidationException, MoleculeSpinAndChargeViolationError
 
 atomic_numbers = {
     "H": 1,
@@ -159,10 +160,16 @@ class Molecule:
         return "; ".join(str(a) for a in self.atoms)
 
     def __post_init__(self):
+        if not isinstance(self.charge, int):
+            raise DFTRequestValidationException("charge must be an integer")
+        if not isinstance(self.spin_multiplicity, int):
+            raise DFTRequestValidationException("spin multiplicity must be an integer")
+
         charge, spin = self.charge, (self.spin_multiplicity - 1) % 2
         total_e = sum(atomic_numbers[atom.symbol] for atom in self.atoms) - charge
         total_e %= 2
-        assert total_e == spin
+        if total_e != spin:
+            raise MoleculeSpinAndChargeViolationError
 
     @staticmethod
     def from_dict(d: dict) -> Molecule:

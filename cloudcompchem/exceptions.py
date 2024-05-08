@@ -12,6 +12,12 @@ class ServerException(Exception):
         return f"Server Exception: {self.message}"
 
 
+class MoleculeSpinAndChargeViolationError(Exception):
+    """
+    Triggered when the spin multiplicity and charge for a molecule are invalid
+    """
+
+
 class ControllerException(Exception):
     """Base class for all thrown exceptions."""
 

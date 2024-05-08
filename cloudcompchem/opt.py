@@ -1,18 +1,25 @@
-from cloudcompchem.models import StructureRelaxationResponse, DFTOptRequest, Atom, Molecule, Orbital
+import logging
+
+import numpy as np
+from pyscf.dft import RKS, UKS
+from pyscf.geomopt.berny_solver import optimize as berny_opt
+from pyscf.geomopt.geometric_solver import optimize as geomeTRIC_opt
+
+from cloudcompchem.models import (
+    Atom,
+    DFTOptRequest,
+    Molecule,
+    Orbital,
+    StructureRelaxationResponse,
+)
 from cloudcompchem.utils import M
 
-from pyscf.dft import RKS, UKS
-from pyscf.geomopt.geometric_solver import optimize as geomeTRIC_opt
-from pyscf.geomopt.berny_solver import optimize as berny_opt
-import logging
-import numpy as np
-
-optimizers = {'geomeTRIC':geomeTRIC_opt, 'berny':berny_opt}
+optimizers = {"geomeTRIC": geomeTRIC_opt, "berny": berny_opt}
 
 logger = logging.getLogger("cloudcompchem.opt")
 
-def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
 
+def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
     """Method to run a dft optimization on the initial request payload."""
     logger.info("Starting dft optimization!")
     # build the input structure with gto
@@ -38,10 +45,10 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
 
     charge, spin_multiplicity = dft_input.molecule.charge, dft_input.molecule.spin_multiplicity
     response_mol = Molecule(list_of_atoms, spin_multiplicity=spin_multiplicity, charge=charge)
-    
+
     return StructureRelaxationResponse(
-        molecule=response_mol, 
-        energy=energy, 
+        molecule=response_mol,
+        energy=energy,
         converged=calc.converged,
         orbitals=[
             Orbital(energy=energy, occupancy=occ)
@@ -50,5 +57,5 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
                 calc.mo_occ,
                 strict=True,
             )
-        ]
-        ) 
+        ],
+    )

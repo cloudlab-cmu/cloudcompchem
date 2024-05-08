@@ -169,7 +169,7 @@ class Molecule:
         total_e = sum(atomic_numbers[atom.symbol] for atom in self.atoms) - charge
         total_e %= 2
         if total_e != spin:
-            raise MoleculeSpinAndChargeViolationError
+            raise MoleculeSpinAndChargeViolationError(self.spin_multiplicity, self.charge)
 
     @staticmethod
     def from_dict(d: dict) -> Molecule:

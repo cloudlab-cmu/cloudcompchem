@@ -51,7 +51,7 @@ def test_simulate_energy_spin_error(client, req_dict, caplog):
         headers={"Authorization": "Bearer abc123"},
     )
     assert response.status_code == 400
-    assert "10 and spin -1" in str(response.data)
+    assert "0 and spin 0" in str(response.data)
 
 
 def test_simulate_energy_charge_format_error(client, req_dict):

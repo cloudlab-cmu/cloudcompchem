@@ -62,8 +62,8 @@ class DFTController:
         # Parse the request
         try:
             dft_input = self._parse_dft_request(global_request)
-        except MoleculeSpinAndChargeViolationError:
-            return ("Invalid molecule", HTTPStatus.BAD_REQUEST)
+        except MoleculeSpinAndChargeViolationError as err:
+            return (str(err), HTTPStatus.BAD_REQUEST)
         except DFTRequestValidationException as err:
             self._logger.error(f"Validation error: {err.message} Returning")
             return (err.message, err.status_code)

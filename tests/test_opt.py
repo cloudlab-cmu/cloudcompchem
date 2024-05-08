@@ -3,7 +3,7 @@ from math import isclose
 import numpy as np
 import pytest
 
-from cloudcompchem.models import Atom, DFTOptRequest, Molecule
+from cloudcompchem.models import DFTOptRequest
 from cloudcompchem.opt import run_dft_opt
 
 

@@ -8,7 +8,7 @@ from .exceptions import (
     MoleculeSpinAndChargeViolationError,
 )
 
-atomic_numbers = {
+ATOMIC_NUMBERS = {
     "H": 1,
     "He": 2,
     "Li": 3,
@@ -168,7 +168,7 @@ class Molecule:
             raise DFTRequestValidationException("spin multiplicity must be an integer")
 
         charge, spin = self.charge, (self.spin_multiplicity - 1) % 2
-        total_e = sum(atomic_numbers[atom.symbol] for atom in self.atoms) - charge
+        total_e = sum(ATOMIC_NUMBERS[atom.symbol] for atom in self.atoms) - charge
         total_e %= 2
         if total_e != spin:
             raise MoleculeSpinAndChargeViolationError(self.spin_multiplicity, self.charge)

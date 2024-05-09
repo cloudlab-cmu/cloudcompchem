@@ -50,8 +50,9 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
 
     assert isinstance(calc.mo_energy, np.ndarray)
     assert isinstance(calc.mo_occ, np.ndarray)
+
     energies = map(float, calc.mo_energy)
-    occupancies = calc.mo_occ
+    occupancies = map(float, calc.mo_occ)
 
     return StructureRelaxationResponse(
         molecule=response_mol,

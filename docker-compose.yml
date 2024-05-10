@@ -1,0 +1,34 @@
+version: '3.4'
+
+services:
+  server:
+    image: cloudcompchem
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 5000:5000
+    environment:
+      - CLOUDCOMPCHEM_REDIS_URL=broker
+
+  broker:
+    image: "redis:alpine"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['celery', '-A', 'cloudcompchem.make_celery', 'worker', '-l', 'info']
+    environment:
+      - BROKER_URL=redis://broker:6379
+      - RESULT_BACKEND=redis://broker:6379
+    depends_on:
+      - broker
+
+  flower:
+    image: mher/flower:0.9.7
+    command: ['flower', '--broker=redis://broker:6379', '--port=5555']
+    ports:
+      - 5555:5555
+    depends_on:
+      - broker

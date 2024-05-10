@@ -124,20 +124,13 @@ class EnergyRequest:
     def from_dict(d: dict) -> EnergyRequest:
         """Create a DFTRequest object from a json-like dictionary, which
         typically comes from a web request."""
-        # unpack the nested molecule struct first
-        mol_dict = d.pop("molecule", None)
-        if not mol_dict:
-            raise ValueError("No molecule information contained in request.")
-        if not isinstance(mol_dict, dict):
-            raise ValueError("Molecule information in request is not in JSON format.")
 
-        molecule = Molecule.from_dict(mol_dict)
-
-        # TODO: switch our dataclasses to pydantic BaseModels
-        if not isinstance(mol_dict.get("charge"), int):
-            raise ValueError("Charge must be an integer.")
-        if not isinstance(mol_dict.get("spin_multiplicity"), int):
-            raise ValueError("Spin multiplicity must be an integer.")
+        try:
+            molecule = Molecule.from_dict(d["molecule"])
+        except KeyError:
+            raise DFTRequestValidationException("No molecule information contained in request.") from None
+        except ValueError as err:
+            raise DFTRequestValidationException("Invalid molecule.") from err
 
         try:
             config = FunctionalConfig(**d["config"])

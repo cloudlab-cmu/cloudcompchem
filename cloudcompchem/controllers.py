@@ -109,6 +109,7 @@ class DFTController:
 
         Generally there should be no reason to update this function.
         """
+        # TODO: move this to a require_login decorator. this function should take request.json, not request.
         token = self._retrieve_auth_token_from_request(request)
         self._logger.info("Got token from request! Attempting to validate token...")
         self._constellation._auth_token = token
@@ -124,7 +125,9 @@ class DFTController:
         self._logger.debug(f"req info = {req_info}")
         if req_info is None:
             raise DFTRequestValidationException("No JSON body found, please include one to run a calculation.")
+
         dft_input = EnergyRequest.from_dict(req_info)
+
         self._logger.info("Request constructed!")
 
         return dft_input

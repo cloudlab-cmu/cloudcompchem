@@ -24,6 +24,7 @@ def create_app(constellation: Constellation | None = None) -> Flask:
 
     app.add_url_rule("/health-check", "healthcheck", dft_controller.health_check, methods=["GET"])
     app.add_url_rule("/energy", "energy", dft_controller.simulate_energy, methods=["POST"])
+    app.add_url_rule("/opt", "geom opt", dft_controller.geom_opt, methods=["POST"])
     app.add_url_rule("/aadd", "aadd", async_add, methods=["POST"])
     app.add_url_rule("/result/<id>", "result", result)
 

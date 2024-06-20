@@ -103,6 +103,15 @@ class DFTController:
 
         return make_response(asdict(energy_dict), HTTPStatus.OK)
 
+    def geom_opt(self):
+        """This is called when a geometry optimization job is requested.
+
+        This should be used to (asynchronously) trigger a a run of the
+        model.
+        """
+
+        self._logger.info("Received request to optimize a molecule!")
+
     def _parse_dft_request(self, request) -> EnergyRequest:
         """Parse the simulation request into the auth token, the protocols to
         simulation, and the model to use.

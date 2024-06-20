@@ -9,26 +9,26 @@ on:
     branches:
       - master
       - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up python 3.7
+    - name: Set up python 3.9
       uses: actions/setup-python@v2
       with:
-        python-version: 3.7
+        python-version: '3.9'
     - name: Install dependencies
       run: |
         cd src
         python -m pip install --upgrade pip
-        pip install coverage
+        pip install coverage pytest
         if  [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run Unit Tests and generate coverage report
       run: |
         cd src
-        python -m unittest -v
-        coverage run -m unittest
+        coverage run -m pytest
         coverage report
         coverage html
     - name: Archive code coverage html report

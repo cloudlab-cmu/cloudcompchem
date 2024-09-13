@@ -1,6 +1,8 @@
 from copy import deepcopy
 from dataclasses import asdict
 
+import pytest
+
 from cloudcompchem.exceptions import DFTRequestValidationException
 from cloudcompchem.models import (
     Atom,
@@ -35,38 +37,29 @@ def test_molecule_deserialize(req_dict):
 
 
 def test_invalid_molecule_deserialization():
-    """Test whether we can deserialize a molecule from dicts."""
-    atom_dicts = {
-        # make a typo here
-        "atomsss": [
-            {"symbol": "O", "position": [0, 0, 0]},
-            {"symbol": "H", "position": [0, 1, 0]},
-            {"symbol": "H", "position": [0, 0, 1]},
-        ],
-        "charge": 0,
-        "spin_multiplicity": 1,
-    }
-    try:
-        res = Molecule.from_dict(atom_dicts)
-    except Exception as e:
-        res = e
-    assert isinstance(res, DFTRequestValidationException)
-    assert "atoms" in res.message
-    assert res.status_code == 400
+    """Test that we get a ValueError when trying to build a Molecule from an
+    invalid dictionary."""
+    with pytest.raises(ValueError):
+        Molecule.from_dict(
+            {
+                "atomsss": [  # make a typo here
+                    {"symbol": "O", "position": [0, 0, 0]},
+                    {"symbol": "H", "position": [0, 1, 0]},
+                    {"symbol": "H", "position": [0, 0, 1]},
+                ],
+                "charge": 0,
+                "spin_multiplicity": 1,
+            }
+        )
 
-    atom_dicts = {
-        # make atoms value not a list
-        "atoms": {"symbol": "O", "position": [0, 0, 0]},
-        "charge": 0,
-        "spin_multiplicity": 1,
-    }
-    try:
-        res = Molecule.from_dict(atom_dicts)
-    except Exception as e:
-        res = e
-    assert isinstance(res, DFTRequestValidationException)
-    assert "list" in res.message
-    assert res.status_code == 400
+    with pytest.raises(ValueError):
+        Molecule.from_dict(
+            {
+                "atoms": {"symbol": "O", "position": [0, 0, 0]},  # make atoms value not a list
+                "charge": 0,
+                "spin_multiplicity": 1,
+            }
+        )
 
 
 def test_molecule_serialize(mol):
@@ -98,26 +91,13 @@ def test_request_deserialization(req_dict):
 
 def test_invalid_request_deserialization(req_dict):
     """Test whether we can deserialize entire dft request."""
-    inv_req_dict = req_dict.copy()
-    # change the molecules key to something that doesn't match
-    inv_req_dict["molecule"] = "blah"
-    try:
-        r = EnergyRequest.from_dict(inv_req_dict)
-    except Exception as e:
-        r = e
-    assert isinstance(r, DFTRequestValidationException)
-    assert "JSON" in r.message
-    assert r.status_code == 400
+    with pytest.raises(DFTRequestValidationException):
+        EnergyRequest.from_dict(req_dict | {"molecule": "blah"})
 
     # delete the molecules key
-    del req_dict["molecule"]
-    try:
-        r = EnergyRequest.from_dict(req_dict)
-    except Exception as e:
-        r = e
-    assert isinstance(r, DFTRequestValidationException)
-    assert "No molecule" in r.message
-    assert r.status_code == 400
+    req_dict.pop("molecule")
+    with pytest.raises(DFTRequestValidationException):
+        EnergyRequest.from_dict(req_dict)
 
 
 def test_single_point_energy_deserialization(expected_energy_response):

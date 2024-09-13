@@ -12,6 +12,20 @@ class ServerException(Exception):
         return f"Server Exception: {self.message}"
 
 
+class MoleculeSpinAndChargeViolationError(Exception):
+    """Triggered when the spin multiplicity and charge for a molecule are
+    invalid."""
+
+    def __init__(self, spin_multiplicity: int, charge: int):
+        self.spin_multiplicity = spin_multiplicity
+        self.charge = charge
+
+    def __str__(self):
+        return (
+            f"Invalid molecule spin and charge multiplicity: charge = {self.charge} and spin {self.spin_multiplicity}"
+        )
+
+
 class ControllerException(Exception):
     """Base class for all thrown exceptions."""
 

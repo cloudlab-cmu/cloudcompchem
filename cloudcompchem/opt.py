@@ -1,9 +1,9 @@
 import logging
-
 import numpy as np
 from pyscf.dft import RKS, UKS
 from pyscf.geomopt.berny_solver import optimize as berny_opt
 from pyscf.geomopt.geometric_solver import optimize as geomeTRIC_opt
+from pyscf.hessian import Hessian
 
 from cloudcompchem.models import (
     Atom,
@@ -20,10 +20,10 @@ logger = logging.getLogger("cloudcompchem.opt")
 
 
 def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
-    """Method to run a dft optimization on the initial request payload."""
-    logger.info("Starting dft optimization!")
-    # build the input structure with gto
-    # spin in pyscf is 2S not 2S+1
+    """Method to run a DFT optimization on the initial request payload and calculate frequencies."""
+    logger.info("Starting DFT optimization!")
+    
+    # Set up molecule
     s = dft_input.molecule.spin_multiplicity - 1
     mol = M(
         atom=str(dft_input.molecule),
@@ -32,19 +32,28 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
         spin=s,
     )
 
-    # run the dft calculation for the given functional
+    # Choose RKS or UKS based on spin multiplicity
     fn = UKS if dft_input.molecule.spin_multiplicity > 1 else RKS
     calc = fn(mol)
     calc.xc = dft_input.config.functional
 
+    # Run geometry optimization
     optimizer = optimizers[dft_input.solver_config.solver]
     mol_eq = optimizer(method=calc, **dft_input.solver_config.conv_params)
     energy = calc.kernel()
     assert energy is not None
 
-    logger.info("Finished dft optimization!")
-    list_of_atoms = [Atom(atom, tuple(np.round(position, 7))) for atom, position in mol_eq.atom]
+    # Frequency and Hessian calculation
+    hessian_calculator = Hessian(calc)
+    hessian_matrix = hessian_calculator.kernel()
+    frequencies = hessian_calculator.frequencies()
 
+    logger.info("Finished DFT optimization and frequency calculation!")
+
+    # Prepare response
+    list_of_atoms = [
+        Atom(atom, tuple(np.round(position, 7))) for atom, position in mol_eq.atom
+    ]
     charge, spin_multiplicity = dft_input.molecule.charge, dft_input.molecule.spin_multiplicity
     response_mol = Molecule(list_of_atoms, spin_multiplicity=spin_multiplicity, charge=charge)
 
@@ -59,4 +68,6 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
         energy=energy,
         converged=calc.converged,
         orbitals=[Orbital(energy=energy, occupancy=occ) for energy, occ in zip(energies, occupancies, strict=True)],
+        hessian=hessian_matrix,
+        frequencies=frequencies,
     )

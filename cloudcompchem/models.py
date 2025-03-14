@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, get_args
 
+from pyscf.hessian.rhf import Hessian
+
 from .exceptions import (
     DFTRequestValidationException,
     MoleculeSpinAndChargeViolationError,
@@ -295,13 +297,20 @@ class DFTOptRequest:
 class StructureRelaxationResponse:
     molecule: Molecule
     energy: float
-    converged: bool
+    converged: bool | object
     orbitals: list[Orbital]
+    hessian: Hessian
+    frequencies: dict
 
     @staticmethod
     def from_dict(d: dict) -> StructureRelaxationResponse:
         orbital_info = d["orbitals"]
         orbitals = [Orbital(**kwargs) for kwargs in orbital_info]
         return StructureRelaxationResponse(
-            orbitals=orbitals, converged=d["converged"], energy=d["energy"], molecule=d["molecule"]
+            orbitals=orbitals,
+            converged=d["converged"],
+            energy=d["energy"],
+            molecule=d["molecule"],
+            hessian=d["hessian"],
+            frequencies=d["frequencies"],
         )

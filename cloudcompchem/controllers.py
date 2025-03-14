@@ -12,7 +12,7 @@ from cloudcompchem.exceptions import (
     MoleculeSpinAndChargeViolationError,
     NotLoggedInException,
 )
-from cloudcompchem.models import EnergyRequest, DFTOptRequest
+from cloudcompchem.models import DFTOptRequest, EnergyRequest
 from cloudcompchem.opt import run_dft_opt
 
 
@@ -157,7 +157,6 @@ class DFTController:
 
         return make_response(asdict(structure_dict), HTTPStatus.OK)
 
-
     def _parse_dft_request(self, request) -> EnergyRequest:
         """Parse the simulation request into the auth token, the protocols to
         simulation, and the model to use.
@@ -186,10 +185,10 @@ class DFTController:
         self._logger.info("Request constructed!")
 
         return dft_input
-    
+
     def _parse_opt_request(self, request) -> DFTOptRequest:
-        """Parse the geometry optimization request into the auth token, the protocols to
-        simulation, and the model to use.
+        """Parse the geometry optimization request into the auth token, the
+        protocols to simulation, and the model to use.
 
         Generally there should be no reason to update this function.
         """

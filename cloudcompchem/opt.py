@@ -1,9 +1,11 @@
 import logging
+
 import numpy as np
 from pyscf.dft import RKS, UKS
 from pyscf.geomopt.berny_solver import optimize as berny_opt
 from pyscf.geomopt.geometric_solver import optimize as geomeTRIC_opt
-from pyscf.hessian import Hessian
+from pyscf.hessian import thermo
+from pyscf.hessian.rhf import Hessian
 
 from cloudcompchem.models import (
     Atom,
@@ -20,9 +22,10 @@ logger = logging.getLogger("cloudcompchem.opt")
 
 
 def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
-    """Method to run a DFT optimization on the initial request payload and calculate frequencies."""
+    """Method to run a DFT optimization on the initial request payload and
+    calculate frequencies."""
     logger.info("Starting DFT optimization!")
-    
+
     # Set up molecule
     s = dft_input.molecule.spin_multiplicity - 1
     mol = M(
@@ -46,14 +49,12 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
     # Frequency and Hessian calculation
     hessian_calculator = Hessian(calc)
     hessian_matrix = hessian_calculator.kernel()
-    frequencies = hessian_calculator.frequencies()
+    frequencies = thermo.harmonic_analysis(mol, hess=hessian_calculator)
 
     logger.info("Finished DFT optimization and frequency calculation!")
 
     # Prepare response
-    list_of_atoms = [
-        Atom(atom, tuple(np.round(position, 7))) for atom, position in mol_eq.atom
-    ]
+    list_of_atoms = [Atom(atom, tuple(np.round(position, 7))) for atom, position in mol_eq.atom]
     charge, spin_multiplicity = dft_input.molecule.charge, dft_input.molecule.spin_multiplicity
     response_mol = Molecule(list_of_atoms, spin_multiplicity=spin_multiplicity, charge=charge)
 

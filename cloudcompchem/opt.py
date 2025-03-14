@@ -49,7 +49,7 @@ def run_dft_opt(dft_input: DFTOptRequest) -> StructureRelaxationResponse:
     # Frequency and Hessian calculation
     hessian_calculator = Hessian(calc)
     hessian_matrix = hessian_calculator.kernel()
-    frequencies = thermo.harmonic_analysis(mol, hess=hessian_calculator)
+    frequencies = thermo.harmonic_analysis(mol, hess=hessian_matrix)
 
     logger.info("Finished DFT optimization and frequency calculation!")
 
